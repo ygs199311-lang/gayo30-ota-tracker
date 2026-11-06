@@ -200,6 +200,9 @@
   .ag:hover { border-color: #3a4370; background: var(--surface2); }
   .ag:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .ag.bad { border-color: var(--bad-line); background: linear-gradient(160deg, var(--bad-bg), var(--surface) 70%); }
+  .lchip { display: inline-flex; align-items: center; gap: 3px; font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px; color: #c9d2ff; background: rgba(169,184,255,.1); box-shadow: inset 0 0 0 1px #34408a; text-decoration: none; white-space: nowrap; }
+  .lchip:hover { background: rgba(169,184,255,.2); color: #fff; }
+  .lchip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .ag .meter { height: 6px; border-radius: 999px; background: var(--surface2); overflow: hidden; }
   .ag .meter i { display: block; height: 100%; border-radius: inherit; }
   .ag .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 12.5px; }
@@ -749,6 +752,15 @@
     const ok = /^https?:\/\/\S+$/i.test(r.link || '');
     tr.querySelector('[data-k="open"]').innerHTML = ok ? `<a class="lnk text-[12px] font-semibold whitespace-nowrap" href="${esc(r.link)}" target="_blank" rel="noopener">열기 ↗</a>` : '';
   }
+  function agLinks(ag) {
+    const out = [], seen = new Set();
+    const add = (url, label) => { if (!/^https?:\/\//i.test(url || '')) return; const k = url.split('?')[0]; if (seen.has(k)) return; seen.add(k); out.push({ url, label }); };
+    let nd = []; try { nd = nUI.docs.filter(d => d.agencyId === ag).sort((a, b) => (a.order || 0) - (b.order || 0)); } catch (e) {}
+    nd.forEach(d => { if (!d.pageState) { let l = (d.platform || '').replace(/\s*\(.*?\)\s*/g, ' ').trim(); if (l === '자사') l = '자사 사이트'; add(d.url, l || '판매 페이지'); } });
+    state.rows.filter(r => r.id.startsWith(ag)).forEach(r => add(r.link, '판매 페이지'));
+    return out;
+  }
+  const linkChips = ls => ls.map(l => `<a class="lchip" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)} ↗</a>`).join('');
   function groupCells(ag) {
     const rs = state.rows.filter(r => r.id.startsWith(ag));
     const name = rs[0]?.agency || '';
@@ -770,7 +782,7 @@
         ${st}${nt}
         <span class="text-[12px] text-muted">총 <b class="num text-ink">${fmt(seats)}</b>석 (12/24·25 합계)</span>
         ${plat ? `<span class="text-[12px] text-muted">판매처 · ${esc(plat)}</span>` : ''}
-        ${link ? `<a class="lnk text-[12px] font-semibold" href="${esc(link)}" target="_blank" rel="noopener">판매 페이지 ↗</a>` : ''}
+        ${(() => { const ls = agLinks(ag); return ls.length ? `<span class="flex flex-wrap gap-1.5">${linkChips(ls)}</span>` : ''; })()}
       </div></td>`;
   }
   function refreshGroup(ag) { const tr = document.querySelector(`#tbody tr.grp[data-ag="${ag}"]`); if (tr) tr.innerHTML = groupCells(ag); }
@@ -935,7 +947,7 @@
         const col = sc.mi ? 'var(--bad)' : sc.pa ? 'var(--warn)' : 'var(--ok)';
         const nf = (d.flags || []).length;
         rows += `<tr class="clk" data-doc="${esc(d._id)}" tabindex="0">
-          <td class="l stick font-semibold">${i ? '<span class="text-muted font-normal">↳ </span>' : ''}${esc(a.name)}<div class="text-[11.5px] text-muted font-normal">${esc(d.platform || '')}</div></td>
+          <td class="l stick font-semibold">${i ? '<span class="text-muted font-normal">↳ </span>' : ''}${esc(a.name)}<div class="text-[11.5px] text-muted font-normal">${/^https?:\/\//i.test(d.url || '') && !d.pageState ? `<a class="lnk" href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.platform || '판매 페이지')} ↗</a>` : esc(d.platform || '')}</div></td>
           <td>${d.lang ? `<span class="langtag">${LANG_NAME[d.lang] || esc(d.lang)}</span>` : '—'}</td>
           <td class="num font-semibold" style="color:${d.pageState ? 'var(--muted)' : col}">${d.pageState ? `<span class="text-[12px]">${esc(d.pageState)}</span>` : sc.pct + '%'}</td>
           <td>${nf ? `<span class="pill st-exempt">${nf}</span>` : '<span class="text-muted">—</span>'}</td>` +
@@ -995,7 +1007,7 @@
   document.getElementById('ndClose').addEventListener('click', closeND);
   shade.addEventListener('click', () => { if (!document.getElementById('ndrawer').hidden) closeND(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.getElementById('ndrawer').hidden) closeND(); });
-  document.getElementById('nbody').addEventListener('click', e => { const tr = e.target.closest('[data-doc]'); if (tr) openND(tr.dataset.doc); });
+  document.getElementById('nbody').addEventListener('click', e => { if (e.target.closest('a')) return; const tr = e.target.closest('[data-doc]'); if (tr) openND(tr.dataset.doc); });
   document.getElementById('nbody').addEventListener('keydown', e => { if (e.key === 'Enter') { const tr = e.target.closest('[data-doc]'); if (tr) openND(tr.dataset.doc); } });
 
   function renderRef() {
@@ -1072,7 +1084,8 @@
       const flags = nd.reduce((a, d) => a + (d.flags || []).length, 0);
       const mcol = pct == null ? 'var(--line)' : pct >= 80 ? 'var(--ok)' : pct >= 40 ? 'var(--warn)' : 'var(--bad)';
       const st = bad ? `<span class="pill st-bad">⚠ 가격 위반 ${bad}</span>` : ex ? `<span class="pill st-exempt">예외 승인</span>` : `<span class="pill st-ok">가격 정상</span>`;
-      return `<button type="button" class="ag ${bad ? 'bad' : ''}" data-ag="${ag}" data-name="${esc(name)}">
+      const ls = agLinks(ag);
+      return `<article class="ag ${bad ? 'bad' : ''}" data-ag="${ag}" data-name="${esc(name)}" tabindex="0" role="link" aria-label="${esc(name)} 판매가 보기">
         <div class="flex items-start justify-between gap-2"><span class="font-bold text-[15px] leading-snug">${esc(name)}</span>${st}</div>
         <div>
           <div class="flex justify-between text-[12px] mb-1.5"><span class="text-muted">고지 반영률</span><span class="num font-semibold" style="color:${mcol}">${pct == null ? (nd[0]?.pageState || '미확인') : pct + '%'}</span></div>
@@ -1084,10 +1097,14 @@
           <dt>확인 페이지</dt><dd>${nd.length ? `${live.length}개${nd.length > live.length ? ` (+${nd.length - live.length} 판독 불가)` : ''}` : '—'}</dd>
           <dt>확인 필요 이슈</dt><dd style="${flags ? 'color:var(--warn);font-weight:600' : ''}">${flags ? flags + '건' : '—'}</dd>
         </dl>
-      </button>`;
+        <div class="flex flex-wrap gap-1.5 pt-1 border-t border-line" style="padding-top:10px">${ls.length ? linkChips(ls) : `<span class="text-[12px] text-muted">판매 페이지 링크 없음${(() => { const r = state.rows.find(x => x.id.startsWith(ag) && x.platform); return r && !/링크/.test(r.platform) ? ' · ' + esc(r.platform) : ''; })()}</span>`}</div>
+      </article>`;
     }).join('');
   }
+  const goAg = b => { ui.q = b.dataset.name; const qi = document.getElementById('q'); if (qi) qi.value = ui.q; location.hash = 'prices'; };
+  document.getElementById('agGrid').addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.ag')) { e.preventDefault(); goAg(e.target); } });
   document.getElementById('agGrid').addEventListener('click', e => {
+    if (e.target.closest('a')) return;
     const b = e.target.closest('[data-ag]'); if (!b) return;
     ui.q = b.dataset.name; const qi = document.getElementById('q'); if (qi) qi.value = ui.q;
     location.hash = 'prices';
