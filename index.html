@@ -595,6 +595,22 @@
     state.rows.forEach(r => { if (P[r.id]) Object.assign(r, P[r.id]); });
     state.v4 = true; save();
   }
+  // 11/10 판매 페이지 확인가 반영
+  if (!state.v5) {
+    const P = {
+      a03F: { note: '자사 웹 S Zone + 왕복 셔틀 USD 405 · Fanbay ¥2,700 · 호텔 2박 2인 ¥8,800 (호텔 포함 패키지가)' },
+      a03G: { note: '자사 웹 R Zone + 왕복 셔틀 USD 330 · Fanbay ¥2,200' },
+      a08F: { note: '일본어 65,000円 · 영문 조기할인 USD 380 (정가 USD 420 ≈ 56만원, 상한 초과 소지)' },
+      a08G: { note: '일본어 53,000円 · 영문 조기할인 USD 270 (정가 USD 320)' },
+      a12F: { note: '상세페이지 가격 미표시 — 가격 코드 미연결' },
+      a12G: { note: '상세페이지 가격 미표시 — 가격 코드 미연결' },
+      a13G: { note: '셀레트립 1만원 바우처 포함가 — 바우처 제외 시 34만원 (하한 미만)' },
+      a07F: { note: 'ITTA 앱 550,000원 확인' }, a07G: { note: 'ITTA 앱 450,000원 확인' },
+      a04F: { note: 'KeePOP $389 · 일본 웹 65,000円' }, a04G: { note: '일본 웹 54,000円' }
+    };
+    state.rows.forEach(r => { if (P[r.id]) Object.assign(r, P[r.id]); });
+    state.v5 = true; save();
+  }
 
   // ── 유틸 ──
   const fmt = n => n == null || isNaN(n) ? '' : Math.round(n).toLocaleString('ko-KR');
