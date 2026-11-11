@@ -1119,12 +1119,12 @@
     let timer = setTimeout(() => { if (nUI.state === 'loading') { nUI.state = 'slow'; renderNotices(); } }, 10000);
     let db = null;
     try { db = await window.claude?.use?.('db'); } catch (e) { db = null; }
-    if (!db) { clearTimeout(timer); nUI.docs = NOTICE_SNAPSHOT.slice(); nUI.state = 'snapshot'; renderNotices(); return; }
+    if (!db) { clearTimeout(timer); nUI.docs = NOTICE_SNAPSHOT.map((d, i) => ({ ...d, _id: d._id || `${d.agencyId}-${i}` })); nUI.state = 'snapshot'; renderNotices(); return; }
     db.collection('notice').onSnapshot(snap => {
       nUI.docs = snap.docs.map(d => ({ _id: d.id, ...(d.data() || {}) }));
       if (!snap.metadata.fromCache) { clearTimeout(timer); nUI.state = 'live'; }
       renderNotices();
-    }, () => { clearTimeout(timer); if (!nUI.docs.length) nUI.docs = NOTICE_SNAPSHOT.slice(); nUI.state = 'snapshot'; renderNotices(); });
+    }, () => { clearTimeout(timer); if (!nUI.docs.length) nUI.docs = NOTICE_SNAPSHOT.map((d, i) => ({ ...d, _id: d._id || `${d.agencyId}-${i}` })); nUI.state = 'snapshot'; renderNotices(); });
   })();
 
   // ── 판매 일정 ──
