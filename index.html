@@ -518,7 +518,7 @@
     ['트래블이지', [40,40,450000,470000], [40,40,350000,370000], ''],
     ['페이브먼트(셀레트립)', null, [30,30,350000], '']
   ];
-  const REMOVED = ['이바다'];
+  const REMOVED = ['이바다', '지티투어'];
   function seedRows() {
     const rows = [];
     SHEET.forEach(([agency, f, g, options], i) => {
@@ -698,6 +698,8 @@
     state.rows.forEach(r => { if (P[r.id]) Object.assign(r, P[r.id]); });
     state.v13 = true; save();
   }
+  // 11/11 지티투어 판매처 삭제
+  if (!state.v14) { state.rows = state.rows.filter(r => !REMOVED.includes(r.agency)); state.v14 = true; save(); }
 
   // ── 유틸 ──
   const fmt = n => n == null || isNaN(n) ? '' : Math.round(n).toLocaleString('ko-KR');
